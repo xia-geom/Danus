@@ -30,6 +30,12 @@ if [ -f "$DANUS_ROOT/runtime/runtime.env" ]; then
   set -a; . "$DANUS_ROOT/runtime/runtime.env"; set +a
 fi
 
+# Operator-approved, non-secret model selection. Loaded after host configuration
+# so all new ordinary-deployment processes use the selected model consistently.
+if [ -f "$DANUS_ROOT/config/model-selection.sh" ]; then
+  . "$DANUS_ROOT/config/model-selection.sh"
+fi
+
 # 3) defaults for anything still unset
 export DANUS_RUNTIME="${DANUS_RUNTIME:-$DANUS_ROOT/runtime}"
 export DANUS_AGENTS_ROOT="${DANUS_AGENTS_ROOT:-$DANUS_RUNTIME/projects}"

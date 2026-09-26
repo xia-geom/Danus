@@ -3,8 +3,8 @@
 # DANUS_AGENTS_ROOT / DANUS_VERIFY_URL / PATH are resolved at launch, not
 # hard-coded here. tool_timeout_sec is kept wide so a cold-start verify or a
 # long-paper verification returns its own honest verdict instead of being cut off.
-model = "gpt-5.6-sol"
-review_model = "gpt-5.6-sol"
+model = "gpt-6-astra"
+review_model = "gpt-6-astra"
 model_reasoning_effort = "ultra"
 disable_response_storage = true
 windows_wsl_setup_acknowledged = true
