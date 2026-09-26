@@ -147,6 +147,19 @@ def _read_fixed(rel: str) -> str:
     return read_fixed(skill_dir(), rel)
 
 
+def _mathematical_writing_standards() -> str:
+    """Give reviewers only operator standards, not typography or style anchors."""
+    guide = _read_fixed("style/STYLE_GUIDE.md")
+    begin = "<!-- BEGIN OPERATOR MATHEMATICAL WRITING STANDARDS -->"
+    end = "<!-- END OPERATOR MATHEMATICAL WRITING STANDARDS -->"
+    if guide.count(begin) != 1 or guide.count(end) != 1:
+        raise ValueError("Missing or ambiguous mathematical-writing standards")
+    body = guide.split(begin, 1)[1]
+    if end not in body:
+        raise ValueError("Misordered mathematical-writing standards markers")
+    return body.split(end, 1)[0].strip()
+
+
 def _read_project(project_dir: Path, rel: str) -> str:
     """Read a required per-project paper file verbatim; fail loudly if missing."""
     return read_project(project_dir, rel)
@@ -908,6 +921,7 @@ def build_paper_math_verifier_prompt(project_dir: Path, *,
         "scrutinizing the paper's own reasoning. Everything you need is embedded.",
         section("AGENTS.md", _read_fixed("roles/AGENTS.md")),
         section("PAPER_MATH_VERIFIER_PROMPT.md", _read_fixed("roles/PAPER_MATH_VERIFIER_PROMPT.md")),
+        section("OPERATOR_MATHEMATICAL_WRITING_STANDARDS", _mathematical_writing_standards()),
         section("REFERENCE_LEDGER.md (citations already CONFIRMED by the reference verifier — trust the `verified-by: verifier` rows)",
                 _read_project(project_dir, _ws_rel(project_dir, paper_id, "REFERENCE_LEDGER.md"))),
         section("PAPER (the whole main.tex — read the mathematics in order)",
@@ -928,6 +942,7 @@ def build_auditor_prompt(project_dir: Path, *, paper_id: Optional[str] = None) -
         "Everything you need is embedded below.",
         section("AGENTS.md", _read_fixed("roles/AGENTS.md")),
         section("REFERENCE_AUDITOR_PROMPT.md", _read_fixed("roles/REFERENCE_AUDITOR_PROMPT.md")),
+        section("OPERATOR_MATHEMATICAL_WRITING_STANDARDS", _mathematical_writing_standards()),
         section("main.tex", _read_project(project_dir, _ws_rel(project_dir, paper_id, "main.tex"))),
         section("REFERENCE_LEDGER.md", _read_project(project_dir, _ws_rel(project_dir, paper_id, "REFERENCE_LEDGER.md"))),
     ]
@@ -961,6 +976,7 @@ def build_verifier_prompt(project_dir: Path, *, findings: Optional[str] = None,
         "embedded below.",
         section("AGENTS.md", _read_fixed("roles/AGENTS.md")),
         section("REFERENCE_VERIFIER_PROMPT.md", _read_fixed("roles/REFERENCE_VERIFIER_PROMPT.md")),
+        section("OPERATOR_MATHEMATICAL_WRITING_STANDARDS", _mathematical_writing_standards()),
         section("main.tex", _read_project(project_dir, _ws_rel(project_dir, paper_id, "main.tex"))),
         section("REFERENCE_LEDGER.md", _read_project(project_dir, _ws_rel(project_dir, paper_id, "REFERENCE_LEDGER.md"))),
         section("AUDITOR_FINDINGS", findings_body),

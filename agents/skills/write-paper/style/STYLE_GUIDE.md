@@ -37,6 +37,49 @@ and not repeated in full here so the two cannot drift.
 
 ---
 
+<!-- BEGIN OPERATOR MATHEMATICAL WRITING STANDARDS -->
+## Mathematical writing standards
+
+These are standing requirements for every mathematical draft, revision,
+reference audit, reference verification, and whole-paper mathematical
+verification report. Role-specific prompts and project briefs may make them
+stricter, but may not weaken them.
+
+- **Cite generously and precisely.** Attribute borrowed ideas, constructions,
+  methods, and results, not only quoted theorem statements. Prefer original
+  sources and identify relevant later developments when they help the reader;
+  distinguish established work from the present contribution. For a result
+  used in a proof, give the theorem, proposition, section, or page whenever it
+  is available, and verify that its hypotheses and conclusion match the use.
+  Never invent a reference or theorem number. Mark any reference whose exact
+  support has not been checked as unverified. Generous citation means proper
+  credit and useful guidance, not unrelated bibliography padding.
+
+- **Concentrate effort on the nontrivial steps.** Give priority to researching,
+  checking, and explaining the difficult or decisive arguments. State the main
+  obstruction, the idea that overcomes it, and why the argument works. Make
+  essential hypotheses, norms, uniformity, parameter dependence, and limiting
+  procedures explicit. Keep routine calculations brief or replace them with
+  precise references, while retaining enough information to check the
+  argument. Never hide a substantive gap behind words such as “standard,”
+  “clearly,” or “by approximation.” This allocation of detail follows the
+  mathematical-writing advice in Terry Tao's [Give appropriate amounts of
+  detail](https://terrytao.wordpress.com/advice-on-writing-papers/give-appropriate-amounts-of-detail/).
+
+- **Write clearly and concisely.** Organize the paper around the logical
+  structure of the proof rather than the chronology of discovery. Explain how
+  the main lemmas contribute to the theorem. Use consistent notation, direct
+  sentences, and only definitions and intermediate results that serve the
+  argument. Remove repetition, generic motivation, unnecessary abstraction,
+  and excessive treatment of elementary steps. Shortening must never change a
+  quantifier, suppress a necessary assumption, turn a conditional claim into a
+  theorem, or conceal a genuine gap.
+
+These operator requirements take precedence over conflicting house-style
+defaults. Concision permits removing redundant exposition while preserving
+mathematical content, essential assumptions, and checkable justification.
+<!-- END OPERATOR MATHEMATICAL WRITING STANDARDS -->
+
 ## 1. Document class and preamble
 
 These are the defaults for an AMS-style mathematics article; a `PROJECT_BRIEF.md`

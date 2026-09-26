@@ -53,6 +53,13 @@ Binding on every role. If you cannot satisfy any of items 1–6, emit a
 once for each, and either confirm compliance or insert `\note{[prime/blocker]
 ...}` flags.
 
+## Mathematical writing standards
+
+The standing mathematical-writing requirements are maintained in
+`style/STYLE_GUIDE.md`, under “Mathematical writing standards”. They apply to
+all roles and take precedence over conflicting house-style defaults. Writers
+receive the full guide; reviewers receive that requirements section alone.
+
 ## Hard constraints (apply to every role)
 
 - **Style source is `style/STYLE_GUIDE.md`** (plus `style/anchors/` exemplars).
