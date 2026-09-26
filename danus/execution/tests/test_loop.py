@@ -130,6 +130,45 @@ def test_run_round_missing_binary_returns_127(tmp: Path):
     assert "codex binary not found" in log.read_text()
 
 
+def test_run_round_refuses_to_overwrite_existing_log(tmp: Path):
+    wl = _mk_worker(tmp)
+    fake = _write_fake_codex(tmp, "raise SystemExit(0)\n")
+    log = wl.dir / "round.log"
+    original = "historical round output\n"
+    log.write_text(original, encoding="utf-8")
+    with _env(DANUS_CODEX_BIN=str(fake)):
+        try:
+            loop.run_round(wl, {"MODEL": "m", "REASONING_EFFORT": "high"},
+                           "prompt", log, hard_timeout=30)
+            assert False, "existing round log must be rejected"
+        except FileExistsError:
+            pass
+    assert log.read_text(encoding="utf-8") == original
+    assert loop._Child.proc is None
+
+
+def test_main_round_log_collision_fails_closed(tmp: Path):
+    wl = _mk_worker(tmp)
+    collision_text = "concurrent historical writer\n"
+
+    def _collide(_wl, _role, _prompt, log_path, _hard_timeout):
+        log_path.write_text(collision_text, encoding="utf-8")
+        raise FileExistsError(log_path)
+
+    with _restore_sigterm(), _env(DANUS_ROUND_BEAT="0", DANUS_MAX_ROUNDS="1"):
+        _patch_run_round(_collide)
+        try:
+            rc = loop.main(str(wl.dir))
+        finally:
+            _unpatch_run_round()
+
+    assert rc == 1
+    assert (wl.logs / "round_1.log").read_text(encoding="utf-8") == collision_text
+    status = json.loads(wl.status.read_text(encoding="utf-8"))
+    assert status["state"] == "error" and status["round"] == 1
+    assert "refusing to overwrite" in status["error"]
+
+
 # --- run_round: unresponsive child → terminate times out → kill → 124 ------ #
 
 def test_run_round_timeout_then_kill(tmp: Path):
@@ -183,6 +222,98 @@ def test_main_stops_on_stop_flag(tmp: Path):
     assert rc == 0
     assert not wl.stop.exists()                       # consumed
     assert json.loads(wl.status.read_text())["state"] == "stopped"
+
+
+def test_last_persisted_round_uses_canonical_logs_only(tmp: Path):
+    wl = _mk_worker(tmp)
+    wl.logs.mkdir()
+    for name in ["round_1.log", "round_3.log", "round_0005.log",
+                 "round_bad.log", "round_7.txt"]:
+        (wl.logs / name).write_text(name, encoding="utf-8")
+    # Status may lead after a crash; only canonical logs reserve numbers.
+    wl.status.write_text(json.dumps({"round": 8}), encoding="utf-8")
+    assert loop._last_persisted_round(wl) == 3
+    (wl.logs / "round_11.log").write_text("eleven", encoding="utf-8")
+    assert loop._last_persisted_round(wl) == 11
+
+
+def test_main_restart_uses_next_round_and_preserves_history(tmp: Path):
+    wl = _mk_worker(tmp)
+    wl.logs.mkdir()
+    wl.task.write_text("new continuation assignment\n", encoding="utf-8")
+    wl.local_memory.mkdir()
+    (wl.local_memory / "notes.md").write_text("worker memory\n", encoding="utf-8")
+    (wl.project_dir / "global_memory").mkdir()
+    (wl.project_dir / "global_memory" / "plan.jsonl").write_text(
+        '{"claim":"shared memory"}\n', encoding="utf-8")
+    (wl.project_dir / "fact_graph").mkdir()
+    (wl.project_dir / "fact_graph" / "sentinel.md").write_text(
+        "verified fact\n", encoding="utf-8")
+    old_log = wl.logs / "round_1.log"
+    old_content = "preserved cutover round\n"
+    old_log.write_text(old_content, encoding="utf-8")
+    wl.status.write_text(
+        json.dumps({"worker": wl.name, "state": "stopped", "round": 1,
+                    "last_rc": 0, "last_fact_id": "0123456789abcdef"}),
+        encoding="utf-8",
+    )
+    seen = []
+
+    def _round(_wl, _role, _prompt, log_path, _hard_timeout):
+        seen.append(log_path.name)
+        assert not log_path.exists()
+        log_path.write_text('"fact_id": "fedcba9876543210"\n', encoding="utf-8")
+        wl.stop.touch()
+        return 0
+
+    with _restore_sigterm(), _env(DANUS_ROUND_BEAT="0", DANUS_MAX_ROUNDS="0",
+                                  DANUS_MAX_CONSEC_FAILURES="0"):
+        _patch_run_round(_round)
+        try:
+            rc = loop.main(str(wl.dir))
+        finally:
+            _unpatch_run_round()
+
+    assert rc == 0
+    assert seen == ["round_2.log"]
+    assert old_log.read_text(encoding="utf-8") == old_content
+    assert (wl.logs / "round_2.log").is_file()
+    status = json.loads(wl.status.read_text(encoding="utf-8"))
+    assert status["state"] == "stopped" and status["round"] == 2
+    assert status["last_rc"] == 0
+    assert status["last_fact_id"] == "fedcba9876543210"
+    assert wl.task.read_text(encoding="utf-8") == "new continuation assignment\n"
+    assert (wl.local_memory / "notes.md").read_text(encoding="utf-8") == "worker memory\n"
+    assert (wl.project_dir / "global_memory" / "plan.jsonl").read_text(
+        encoding="utf-8") == '{"claim":"shared memory"}\n'
+    assert (wl.project_dir / "fact_graph" / "sentinel.md").read_text(
+        encoding="utf-8") == "verified fact\n"
+
+
+def test_main_max_rounds_remains_per_restart(tmp: Path):
+    wl = _mk_worker(tmp)
+    wl.logs.mkdir()
+    (wl.logs / "round_7.log").write_text("old\n", encoding="utf-8")
+    wl.status.write_text(json.dumps({"round": 99}), encoding="utf-8")
+    seen = []
+
+    def _round(_wl, _role, _prompt, log_path, _hard_timeout):
+        seen.append(log_path.name)
+        log_path.write_text("new\n", encoding="utf-8")
+        return 0
+
+    with _restore_sigterm(), _env(DANUS_ROUND_BEAT="0", DANUS_MAX_ROUNDS="2",
+                                  DANUS_MAX_CONSEC_FAILURES="0"):
+        _patch_run_round(_round)
+        try:
+            rc = loop.main(str(wl.dir))
+        finally:
+            _unpatch_run_round()
+
+    assert rc == 0
+    assert seen == ["round_8.log", "round_9.log"]
+    status = json.loads(wl.status.read_text(encoding="utf-8"))
+    assert status["state"] == "max_rounds" and status["round"] == 9
 
 
 # --- main loop: deadline → stop -------------------------------------------- #
@@ -492,8 +623,13 @@ def main() -> None:
         test_run_round_success_rc0,
         test_run_round_hard_timeout_terminates,
         test_run_round_missing_binary_returns_127,
+        test_run_round_refuses_to_overwrite_existing_log,
+        test_main_round_log_collision_fails_closed,
         test_run_round_timeout_then_kill,
         test_main_stops_on_stop_flag,
+        test_last_persisted_round_uses_canonical_logs_only,
+        test_main_restart_uses_next_round_and_preserves_history,
+        test_main_max_rounds_remains_per_restart,
         test_main_stops_on_deadline,
         test_main_max_rounds_cap,
         test_main_consecutive_failure_cap,

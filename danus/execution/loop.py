@@ -39,6 +39,7 @@ from . import scaffold
 from danus import codex
 
 _FACT_ID_RE = re.compile(r'"?fact_id"?\s*[:=]\s*"?([0-9a-f]{16})"?')
+_ROUND_LOG_RE = re.compile(r"^round_([1-9][0-9]*)\.log$")
 
 
 # --- the per-round prompt (continuation semantics; see worker.md) ----------- #
@@ -120,6 +121,27 @@ def _parse_last_fact_id(log_path: Path) -> Optional[str]:
     return ids[-1] if ids else None
 
 
+def _last_persisted_round(wl: L.WorkerLayout) -> int:
+    """Return the highest canonical round number already persisted on disk.
+
+    Round logs are the authoritative history; ``.status.json`` is advisory and
+    may lead or lag after a crash.  Malformed and noncanonical names are
+    ignored, and the result is always a non-negative integer.
+    """
+    rounds = [0]
+    for path in wl.logs.iterdir():
+        match = _ROUND_LOG_RE.fullmatch(path.name)
+        if match:
+            try:
+                rounds.append(int(match.group(1)))
+            except ValueError as exc:
+                raise RuntimeError(
+                    f"invalid canonical round log number: {path.name}"
+                ) from exc
+
+    return max(rounds)
+
+
 # --- one round ------------------------------------------------------------- #
 
 class _Child:
@@ -146,7 +168,9 @@ def run_round(wl: L.WorkerLayout, role: dict, prompt: str, log_path: Path,
         "--dangerously-bypass-approvals-and-sandbox",
         prompt,
     )
-    with open(log_path, "w", encoding="utf-8") as logf:
+    # Exclusive creation is the final race-safe guard: even if status/log
+    # discovery was stale, an existing historical round is never truncated.
+    with open(log_path, "x", encoding="utf-8") as logf:
         try:
             _Child.proc = subprocess.Popen(
                 cmd, stdout=logf, stderr=subprocess.STDOUT,
@@ -215,8 +239,16 @@ def main(worker_dir: str) -> int:
 
     signal.signal(signal.SIGTERM, _on_term)
 
-    write_status(wl, state="running", round=0, started_at=time.time())
-    rnd = 0
+    # A stopped worker may be started many times.  Continue monotonically from
+    # the highest round ever persisted instead of resetting to round 1.
+    try:
+        rnd = _last_persisted_round(wl)
+    except (OSError, RuntimeError) as exc:
+        write_status(wl, state="error", error=f"cannot inspect round logs: {exc}")
+        _cleanup_pid(wl)
+        return 1
+    write_status(wl, state="running", round=rnd, started_at=time.time())
+    rounds_this_run = 0
     consec_fail = 0
     try:
         while True:
@@ -227,14 +259,22 @@ def main(worker_dir: str) -> int:
             if _deadline_passed(project_dir):
                 write_status(wl, state="deadline")
                 break
-            if max_rounds and rnd >= max_rounds:
+            if max_rounds and rounds_this_run >= max_rounds:
                 write_status(wl, state="max_rounds")
                 break
 
             rnd += 1
             log_path = wl.logs / f"round_{rnd}.log"
             write_status(wl, state="running", round=rnd, round_started_at=time.time())
-            rc = run_round(wl, role, prompt, log_path, hard_timeout)
+            try:
+                rc = run_round(wl, role, prompt, log_path, hard_timeout)
+            except FileExistsError:
+                write_status(
+                    wl, state="error", round=rnd,
+                    error=f"refusing to overwrite existing round log: {log_path}",
+                )
+                return 1
+            rounds_this_run += 1
             write_status(
                 wl, state="idle", round=rnd, last_round_at=time.time(),
                 last_rc=rc, last_fact_id=_parse_last_fact_id(log_path),
