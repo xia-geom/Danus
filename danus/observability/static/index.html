@@ -1,64 +1,122 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Danus dashboard</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/markdown-it@14.1.0/dist/markdown-it.min.js"></script>
-  <link rel="stylesheet" href="/static/style.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Danus · Live activity</title>
+<style>
+:root{color-scheme:light;--ink:#172334;--muted:#5b6778;--line:#d8e0e8;--paper:#fff;--back:#f3f6f9;--accent:#245ca6}
+*{box-sizing:border-box}body{margin:0;background:var(--back);color:var(--ink);font:15px/1.5 system-ui,sans-serif}header,main{max-width:1440px;margin:auto;padding:20px 28px}header{display:flex;align-items:center;gap:18px;flex-wrap:wrap}h1{font-size:23px;margin:0}h2{font-size:17px;margin:0 0 12px}h3{font-size:15px;margin:0}a{color:var(--accent)}header nav{margin-left:auto}main{padding-top:0}.muted,small{color:var(--muted)}.toolbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:16px 0}button,select{font:inherit;padding:7px 11px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}button{cursor:pointer}button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}label{display:inline-flex;align-items:center;gap:8px}button:hover{border-color:var(--accent)}.panel{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:12px}.worker{width:100%;text-align:left;padding:16px;white-space:normal}.worker.selected{border:2px solid var(--accent);padding:15px}.worker strong{font-size:16px}.worker small{display:block;margin-top:5px}.badge{display:inline-block;background:#edf2f8;padding:2px 8px;border-radius:4px;font-size:12px;margin-left:8px}.warning{border-left:4px solid #b36e14;background:#fff5e5;padding:12px 16px;margin-bottom:16px}.records{display:flex;flex-wrap:wrap;gap:12px 26px}.records div{min-width:200px}.records small{display:block}.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}.split.single{grid-template-columns:1fr}.log{height:420px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#142131;color:#e9f0fa;padding:16px;border-radius:8px;font:13px/1.6 ui-monospace,monospace}.meta{font-size:12px;color:var(--muted);overflow-wrap:anywhere;min-height:36px}.task{white-space:pre-wrap;overflow-wrap:anywhere;max-height:220px;overflow:auto}summary{cursor:pointer}footer{margin:18px 0;color:var(--muted);font-size:13px}[hidden]{display:none!important}@media(max-width:760px){header,main{padding:16px}.split{grid-template-columns:1fr}header nav{margin-left:0}.log{height:340px}}
+</style>
 </head>
 <body>
-  <div id="conn-banner" class="conn-banner" hidden>⚠ Cannot reach server — is <code>python -m danus.observability</code> running?</div>
-  <header class="header">
-    <h1>Danus</h1>
-    <span class="badge badge-version">fact graph + global memory</span>
-    <span id="project-badge" class="badge badge-project"></span>
-    <nav class="header-nav">
-      <a class="nav-link active" data-tab="overview">Overview</a>
-      <a class="nav-link" data-tab="graph">Fact Graph</a>
-      <a class="nav-link" data-tab="memory">Global Memory</a>
-    </nav>
-    <span id="refresh-note" class="refresh-note"></span>
-  </header>
-
-  <main class="main">
-    <!-- Overview -->
-    <section id="tab-overview" class="tab active">
-      <div id="ov-cards" class="cards"></div>
-      <div class="ov-grid">
-        <div class="panel"><div class="panel-h">Global-memory channels</div><div id="ov-channels" class="bars"></div></div>
-        <div class="panel"><div class="panel-h">Verifier verdicts</div><div id="ov-verdicts"></div></div>
-        <div class="panel"><div class="panel-h">Facts by author</div><div id="ov-authors" class="bars"></div></div>
-      </div>
-    </section>
-
-    <!-- Fact Graph -->
-    <section id="tab-graph" class="tab">
-      <div class="graph-wrap">
-        <div class="graph-toolbar">
-          <span class="muted">size + shade = dependency depth:</span>
-          <span class="legend">axiom</span>
-          <span style="width:130px;height:11px;border-radius:6px;display:inline-block;background:linear-gradient(90deg,hsl(248,50%,80%),hsl(248,76%,28%))"></span>
-          <span class="legend">deep result</span>
-          <span id="graph-stat" class="muted"></span>
-        </div>
-        <div id="graph" class="graph"></div>
-        <aside id="fact-detail" class="fact-detail">
-          <div class="muted">Click a node to inspect its statement, proof, and predecessors.</div>
-        </aside>
-      </div>
-    </section>
-
-    <!-- Global Memory -->
-    <section id="tab-memory" class="tab">
-      <div id="mem-subtabs" class="subtabs"></div>
-      <div id="mem-list" class="mem-list"></div>
-    </section>
-  </main>
-
-  <script defer src="/static/app.js"></script>
+<header><h1>Danus</h1><span class="badge">Live activity · read only</span><strong id="project">Loading project…</strong><nav><a href="/static/results.html">Fact graph &amp; global memory</a></nav></header>
+<main>
+<p class="muted">See what was recorded, compare rounds, and decide when to intervene. This page never starts, stops, or steers an agent.</p>
+<div class="toolbar"><label><input id="auto" type="checkbox" checked>Auto-refresh view (3 seconds)</label><button id="refresh">Refresh now</button><span id="fetched" class="muted" aria-live="polite">Not fetched yet</span></div>
+<div id="error" class="warning" role="status" hidden></div>
+<section class="panel"><h2>Workers</h2><div id="workers" class="cards"></div><p class="muted"><small>State and PID come from the saved status file, not a process-health probe. A log write is activity evidence, not proof of mathematical progress.</small></p></section>
+<section class="panel"><h2>Orchestrator &amp; shared records</h2><div class="records" id="records"></div><div class="toolbar"><button id="show-orchestrator" disabled>Inspect orchestrator transcript</button><small id="orchestrator-note"></small></div></section>
+<section class="panel"><h2 id="detail-title">Select a worker</h2><div class="toolbar" id="round-tools"><label>Round <select id="round"></select></label><label><input id="latest" type="checkbox" checked>Follow latest recorded round</label><label><input id="compare" type="checkbox" checked>Compare previous round</label></div><details id="assignment"><summary>Current assignment (TASK.md)</summary><pre id="task" class="task"></pre><small id="task-note"></small></details><p class="muted" id="detail-note"></p><div id="logs" class="split"><div><h3 id="current-title">Selected round</h3><div id="current-meta" class="meta"></div><pre id="current-log" class="log" tabindex="0">No log selected.</pre></div><div id="previous-panel"><h3 id="previous-title">Previous recorded round</h3><div id="previous-meta" class="meta"></div><pre id="previous-log" class="log" tabindex="0">No previous round.</pre></div></div></section>
+<footer>Only the latest 12 round metadata records and bounded 64 KiB log tails are displayed. Silent or repetitive output is not automatically classified as a loop. Keep this private dashboard on loopback or an SSH tunnel.</footer>
+</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const text = (id, value) => { $(id).textContent = value; };
+let snapshot = null, selected = null, mode = 'worker', busy = false, revision = 0;
+const versions = new Map();
+const stamp = t => t == null ? 'not recorded' : new Date(t * 1000).toLocaleString();
+function age(t) { if (t == null) return 'not recorded'; const seconds = Math.max(0, Math.floor(Date.now()/1000-t)); return seconds < 60 ? seconds+'s ago' : seconds < 3600 ? Math.floor(seconds/60)+'m ago' : Math.floor(seconds/3600)+'h ago'; }
+function node(tag, value, cls) { const n=document.createElement(tag); if(value!=null)n.textContent=value; if(cls)n.className=cls; return n; }
+async function api(url) { const r=await fetch(url,{cache:'no-store'}); if(!r.ok)throw new Error('Source unavailable (HTTP '+r.status+').'); return r.json(); }
+function selectionChanged() { revision++; versions.clear(); for(const p of ['current','previous']){text(p+'-meta','Loading selected source…');text(p+'-log','Loading…');} if(snapshot) renderDetail(); }
+function choose(name) { mode='worker'; selected=name; $('latest').checked=true; selectionChanged(); renderCards(); }
+function renderCards() {
+  const list=$('workers'); list.replaceChildren();
+  for(const w of snapshot.workers) {
+    const b=node('button',null,'worker'+(mode==='worker'&&selected===w.name?' selected':''));
+    b.setAttribute('aria-pressed',String(mode==='worker'&&selected===w.name));
+    b.append(node('strong',w.name),node('span',w.reported_state,'badge'));
+    b.append(node('small',(w.model||'Model not recorded')+' · '+(w.effort||'effort not recorded')));
+    b.append(node('small','Reported round '+(w.reported_round??'unknown')+' · PID '+(w.recorded_pid??'unknown')+' · last exit '+(w.last_rc??'unknown')));
+    b.append(node('small','Status file: '+age(w.status_record?.modified_at)));
+    b.append(node('small','Latest log write: '+age(w.latest_log?.modified_at)));
+    if(w.reported_state==='running'&&w.round_started_at)b.append(node('small','Reported round started: '+age(w.round_started_at)));
+    if(!w.status_readable)b.append(node('small','Status missing or unreadable; inspect the logs.'));
+    b.onclick=()=>choose(w.name); list.append(b);
+  }
+  if(!snapshot.workers.length)list.append(node('p','No worker records available.','muted'));
+  if(snapshot.unavailable_workers.length)list.append(node('p','Unavailable sources: '+snapshot.unavailable_workers.join(', '),'warning'));
+}
+function renderRecords() {
+  const list=$('records'); list.replaceChildren();
+  const add=(label,record)=>{const d=node('div'); d.append(node('strong',label),node('small','File write: '+age(record?.modified_at)),node('small',stamp(record?.modified_at))); list.append(d);};
+  add('Orchestrator transcript',snapshot.orchestrator.record);
+  for(const [kind,record] of Object.entries(snapshot.shared_records))add(kind.replaceAll('_',' '),record);
+  $('show-orchestrator').disabled=!snapshot.orchestrator.record;
+  text('orchestrator-note',!snapshot.orchestrator.configured?'Not connected. Configure DANUS_DASHBOARD_ORCHESTRATOR_LOG on the dashboard server.':!snapshot.orchestrator.record?'Configured transcript is missing or unreadable.':'Operator-selected transcript; its project association and process health are not independently verified.');
+}
+async function loadLog(prefix, url, version, token) {
+  if(versions.get(prefix)===url+version)return;
+  const target=$(prefix+'-log');
+  try {
+    const data=await api(url); if(token!==revision)return;
+    const bottom=target.scrollHeight-target.scrollTop-target.clientHeight<50;
+    target.textContent=data.text||'(The log exists but is empty.)';
+    text(prefix+'-meta',data.source+' · written '+stamp(data.modified_at)+' · '+data.bytes.toLocaleString()+' bytes'+(data.truncated?' · tail only (older content omitted)':''));
+    if(bottom)target.scrollTop=target.scrollHeight;
+    versions.set(prefix,url+version);
+  }catch(e){if(token===revision){versions.delete(prefix);text(prefix+'-meta','Unable to refresh this log. Previously shown text may be stale.');if(!target.textContent)target.textContent=e.message;}}
+}
+async function renderDetail() {
+  const token=revision;
+  const isWorker=mode==='worker'; $('round-tools').hidden=!isWorker; $('assignment').hidden=!isWorker;
+  if(!isWorker) {
+    text('detail-title','Orchestrator transcript'); text('detail-note','Raw output from the explicitly configured local transcript. No inference about process health.');
+    $('previous-panel').hidden=true; $('logs').classList.add('single'); text('current-title','Latest recorded output');
+    if(snapshot.orchestrator.record)await loadLog('current','/api/activity/log?source=orchestrator',snapshot.orchestrator.record.version,token);
+    else {text('current-meta','Transcript unavailable.');text('current-log','No orchestrator transcript available.');}
+    return;
+  }
+  const w=snapshot.workers.find(w=>w.name===selected);
+  if(!w){text('detail-title','No worker selected');text('current-log','No worker record available.');text('previous-log','No previous round.');return;}
+  text('detail-title',w.name+' · recorded activity'); text('task',w.task||'Assignment missing, empty, or unreadable.');
+  text('task-note','File written '+stamp(w.task_record?.modified_at)+(w.task_truncated?' · assignment preview truncated.':''));
+  text('detail-note','Log write: '+stamp(w.latest_log?.modified_at)+' · status file: '+stamp(w.status_record?.modified_at)+'. These are source timestamps, not the page refresh time.');
+  const previousChoice=$('round').value;
+  $('round').replaceChildren(...w.rounds.map(r=>{const o=node('option','Round '+r.round+' · '+age(r.modified_at));o.value=r.round;return o;}));
+  if(!$('latest').checked&&w.rounds.some(r=>String(r.round)===previousChoice))$('round').value=previousChoice;
+  else if(!$('latest').checked&&previousChoice){const o=node('option','Round '+previousChoice+' (outside recent window)');o.value=previousChoice;$('round').append(o);$('round').value=previousChoice;}
+  const n=Number($('round').value), current=w.rounds.find(r=>r.round===n);
+  const previous=w.rounds.find(r=>r.round<n);
+  const compare=$('compare').checked; $('previous-panel').hidden=!compare; $('logs').classList.toggle('single',!compare);
+  text('current-title',n?'Round '+n:'No round log');
+  if(!n){text('current-meta','');text('current-log','No round logs available.');text('previous-log','No previous round.');text('previous-meta','');return;}
+  const url=r=>'/api/activity/log?worker='+encodeURIComponent(w.name)+'&round='+r;
+  const work=[loadLog('current',url(n),current?.version||snapshot.fetched_at,token)];
+  if(compare&&previous){text('previous-title','Previous recorded round '+previous.round);work.push(loadLog('previous',url(previous.round),previous.version,token));}
+  else if(compare){text('previous-title','Previous recorded round');text('previous-meta','');text('previous-log','No earlier log in the recent window.');versions.delete('previous');}
+  await Promise.all(work);
+}
+async function refresh() {
+  if(busy)return; busy=true;
+  try {
+    snapshot=await api('/api/activity');
+    text('project',snapshot.project); text('fetched','Fetched '+stamp(snapshot.fetched_at)); $('error').hidden=true;
+    if(!selected&&snapshot.workers.length)selected=snapshot.workers[0].name;
+    renderCards(); renderRecords(); await renderDetail();
+  }catch(e){text('error','Disconnected: '+e.message+' The visible records may be stale; last successful fetch is shown above.');$('error').hidden=false;}
+  finally {busy=false;}
+}
+$('round').onchange=()=>{$('latest').checked=false;selectionChanged();};
+$('latest').onchange=selectionChanged; $('compare').onchange=selectionChanged;
+$('show-orchestrator').onclick=()=>{mode='orchestrator';selectionChanged();renderCards();};
+$('refresh').onclick=()=>{versions.clear();refresh();};
+$('auto').onchange=()=>{if($('auto').checked)refresh();};
+setInterval(()=>{if($('auto').checked&&!document.hidden)refresh();},3000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&$('auto').checked)refresh();});
+refresh();
+</script>
 </body>
 </html>
