@@ -1,27 +1,38 @@
-# OPERATOR.md — durable operator profile & standing preferences
+# OPERATOR.md — standing preferences
 
-> Read by the main agent (codex) at the start of every session — it is NOT
-> auto-loaded, so `AGENTS.md` tells the agent to read it. It is the main agent's
-> **long-term memory of the operator** —
-> the things it learns by asking and must not forget when the session ends. Keep it
-> short, factual, current; update in place (no duplicates). **No secrets here**
-> (tokens/keys go to `config/*.env`, gitignored). This file is committed.
->
-> On a fresh deployment this is the blank template — the `initialize` skill fills it.
+Read with `AGENTS.md`. These preferences restrict autonomy; they do not weaken
+Danus's verification rules. Keep this file short and current. No secrets.
 
 ## Operator
-- **Name / how to address:** _(ask once; fill in)_
-- **Language:** _(the language the main agent replies in; code/comments/skills stay English)_
-- **Timezone:** _(for scheduling summaries)_
+- Language: English unless requested otherwise.
+- Timezone: `America/Toronto`.
+- Preferred working branch: `personal/xia`; use only an operator-approved runtime.
 
-## Standing preferences
-- **Notifications:** _(how/where to reach them; what severity warrants a ping)_
-- **Spend ceiling (paid backend API):** _(USD; warn before crossing)_
-- **worker roster:** _(default `high:3,xhigh:4` — 3 high + 4 xhigh; asked per project at `danus new`)_
+## Research and permissions
+- Use the relevant Danus worker first for substantive unresolved research.
+  Routine explanations and simple calculations may be handled directly.
+  An explicit request to work outside Danus overrides this default.
+- Name the project explicitly. Before material actions, check repository/runtime
+  identity, service health and worker status without changing anything. Ask if
+  project selection is ambiguous.
+- Auto-start only when exactly one relevant project and worker are identified,
+  the worker is audited as cleanly stopped, and continuation is permitted.
+  Leave running workers undisturbed; ask about all other states.
+- Obtain explicit approval for project creation and roster selection, worker
+  stops/restarts beyond the exception above, service changes, finalization,
+  fact revocation, pushes/publication, state imports, or new paid API/consultation
+  charges.
 
-## Per-project pointers
-_(One line per live project → where its durable facts live. The project's own
-problem lives under `runtime/projects/<project>/PROBLEM.md`, not here.)_
+## Preservation and isolation
+- Preserve project state across code changes. Never erase or rewrite historical
+  facts, logs, original manuscripts or migration archives. Use sanctioned tools
+  for shared stores; never read or modify worker-private memory from the main
+  role. Never restart protected legacy workers.
+- Never copy, expose or commit credentials or private environment-file contents.
+- Do not access the isolated Log K deployment (`lima-danus-logk-independent`)
+  without an explicit request; keep its state separate.
 
-## Notes
-_(Anything else durable the operator told you: conventions, do/don't, contacts.)_
+
+## Manuscripts
+- Keep internal tooling metadata out of manuscripts. Include AI disclosure only
+  when requested or venue-required; obtain approval for venue-required wording.
