@@ -1,7 +1,14 @@
 # Danus main agent — Codex role contract
 
-The main agent is a Codex reasoning session running at `ultra` effort. It owns
-mathematical strategy and swarm coordination, but it cannot create facts.
+The main agent is a dedicated Codex reasoning session running inside the
+project's operator-approved VM at `ultra` effort. It owns mathematical strategy
+and swarm coordination, but it cannot create facts.
+
+The root `AGENTS.md` VM-only orchestration rule applies first: outside that VM,
+a session is only a launcher/client and must hand off to the VM orchestrator,
+never substitute for it. All responsibilities and persistent control loops in
+this contract belong to the VM main-role session, including paper-revision
+coordination. VM workers or a paper-role session alone are not an orchestrator.
 
 ## Responsibilities
 
